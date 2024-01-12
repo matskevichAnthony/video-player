@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>HTML5 Video Player</title>
+  <style>
+    .video-player-container {
+      width: 640px;
+      height: 360px;
+      margin: 0 auto;
+    }
+
+    .video-control {
+      display: block;
+      width: 100px;
+      margin: 20px auto;
+      padding: 10px;
+      text-align: center;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .video-control.enabled {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="video-player-container" class="video-player-container">
+    <video id="video-player" width="640" height="360" controls>
+      <!-- TODO: check video type for different browsers -->
+      <source src="video_1.mp4" type="video/mp4">
+      Your browser does not support HTML5 video.
+    </video>
+  </div>
+  <button id="prev-button" class="video-control">Previous Video</button>
+  <button id="next-button" class="video-control">Next Video</button>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const videoPlayer = document.getElementById('video-player');
+      const nextButton = document.getElementById('next-button');
+      const prevButton = document.getElementById('prev-button');
+      const videoSources = ['video_1.mp4', 'video_2.mp4', 'video_3.mp4'];
+      const stateKey = 'videoPlayerState';
+
+      // Initialize or read state from localStorage
+      const initState = () => {
+        const savedState = localStorage.getItem(stateKey);
+        return savedState ? JSON.parse(savedState) : { lastVideoIndex: 0, watchedStatus: {} };
+      };
+
+      let state = initState();
+
+      const saveState = () => {
+        localStorage.setItem(stateKey, JSON.stringify(state));
+      };
+
+      const checkWatchedStatus = (index) => {
+        return state.watchedStatus[videoSources[index]] === true;
+      };
+
+      const markAsWatched = (index) => {
+        state.watchedStatus[videoSources[index]] = true;
+        saveState();
+      };
+
+      const updateButtonStates = () => {
+        const isWatched = checkWatchedStatus(currentIndex) || (videoPlayer.currentTime / videoPlayer.duration >= 0.9);
+        nextButton.classList.toggle('enabled', isWatched);
+        nextButton.disabled = !isWatched || currentIndex >= videoSources.length - 1;
+
+        const hasPrevious = currentIndex > 0;
+        prevButton.classList.toggle('enabled', hasPrevious);
+        prevButton.disabled = !hasPrevious;
+      };
+
+      const loadVideo = (index) => {
+        videoPlayer.src = videoSources[index];
+        videoPlayer.load();
+        state.lastVideoIndex = index;
+        saveState();
+        updateButtonStates();
+      };
+
+      const enableNextButton = () => {
+        if (videoPlayer.currentTime / videoPlayer.duration >= 0.9 && !checkWatchedStatus(currentIndex)) {
+          markAsWatched(currentIndex);
+          updateButtonStates();
+        }
+      };
+
+      videoPlayer.addEventListener('timeupdate', enableNextButton);
+
+      nextButton.addEventListener('click', () => {
+        if (nextButton.classList.contains('enabled') && currentIndex < videoSources.length - 1) {
+          currentIndex++;
+          loadVideo(currentIndex);
+          videoPlayer.play();
+        }
+      });
+
+      prevButton.addEventListener('click', () => {
+        if (prevButton.classList.contains('enabled') && currentIndex > 0) {
+          currentIndex--;
+          loadVideo(currentIndex);
+          videoPlayer.play();
+        }
+      });
+
+      let currentIndex = state.lastVideoIndex;
+      loadVideo(currentIndex); // Load the video but do not auto-play
+    });
+  </script>
+
+</body>
+
+</html>
